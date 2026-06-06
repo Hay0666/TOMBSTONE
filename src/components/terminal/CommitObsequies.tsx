@@ -84,11 +84,11 @@ export const CommitObsequies: FC = () => {
   const onComplete = useCallback(() => {
     setTerminalComplete(true)
     track({
-      event: 'manifest_generation_completed',
+      event: 'commit_obsequies_completed',
       properties: {
         sentencedNodeCount: sentencedNodeIds.length,
-        manifestLineCount: terminalLines.length,
-        generationDurationMs: generationStartRef.current
+        terminalLineCount: terminalLines.length,
+        typewriterDurationMs: generationStartRef.current
           ? Date.now() - generationStartRef.current
           : 0,
       },
@@ -121,10 +121,11 @@ export const CommitObsequies: FC = () => {
     )
 
     track({
-      event: 'tombstone_schema_exported',
+      event: 'tombstone_export_completed',
       properties: {
         schemaCount: sentencedNodes.length,
         sessionDurationMs: Date.now() - sessionStartTime,
+        exportedNodeIds: sentencedNodes.map(n => n.id).join(','),
       },
     })
 

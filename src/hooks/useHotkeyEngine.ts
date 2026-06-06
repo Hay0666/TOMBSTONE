@@ -124,10 +124,11 @@ export function useHotkeyEngine() {
         openAutopsyPanel(hoveredNodeId)
         const hoveredNode = nodes.find(n => n.id === hoveredNodeId)
         track({
-          event: 'autopsy_panel_opened',
+          event: 'autopsy_panel_viewed',
           properties: {
             nodeId: hoveredNodeId,
             nodeIEI: (hoveredNode?.data as FeatureNodeData)?.metrics?.iei ?? 0,
+            nodeStatus: (hoveredNode?.data as FeatureNodeData)?.status ?? 'unknown',
             activationMethod: 'hotkey',
           },
         })
@@ -151,7 +152,7 @@ export function useHotkeyEngine() {
           event: 'sentence_undone',
           properties: {
             restoredNodeCount: lastSentencedIds.length,
-            restoredNodeIds: lastSentencedIds,
+            restoredNodeIds: lastSentencedIds.join(','),
           },
         })
         restoreNodes(lastSentencedIds)

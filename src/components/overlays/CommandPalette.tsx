@@ -44,7 +44,16 @@ export const CommandPalette: FC = () => {
         query: query,
         resultsCount: filtered.length,
         selectedNodeId: nodeId,
-        selectedNodeTier: selectedData?.tier ?? 'unknown',
+        selectedNodeLabel: selectedData?.label ?? '',
+      },
+    })
+    track({
+      event: 'autopsy_panel_viewed',
+      properties: {
+        nodeId,
+        nodeIEI: selectedData?.metrics?.iei ?? 0,
+        nodeStatus: selectedData?.status ?? 'unknown',
+        activationMethod: 'search',
       },
     })
     openAutopsyPanel(nodeId)

@@ -87,10 +87,11 @@ function GraveyardCanvasInner() {
     if (razorMode === 'NOMINAL') {
       openAutopsyPanel(node.id)
       track({
-        event: 'autopsy_panel_opened',
+        event: 'autopsy_panel_viewed',
         properties: {
           nodeId: node.id,
           nodeIEI: (node.data as FeatureNodeData).metrics?.iei ?? 0,
+          nodeStatus: (node.data as FeatureNodeData).status ?? 'unknown',
           activationMethod: 'click',
         },
       })

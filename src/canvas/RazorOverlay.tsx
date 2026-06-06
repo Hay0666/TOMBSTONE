@@ -129,6 +129,7 @@ export const RazorOverlay: FC = () => {
           nodesSentenced: intersected.length,
           totalIEICut: Math.round(totalIEICut * 1000) / 1000,
           deltaPhiBits: Math.round(totalDeltaPhi * 100) / 100,
+          sentencedNodeIds: intersected.join(','),
         },
       })
 
@@ -155,10 +156,11 @@ export const RazorOverlay: FC = () => {
           openAutopsyPanel(intersected[0])
           const autoNode = nodes.find(n => n.id === intersected[0])
           track({
-            event: 'autopsy_panel_opened',
+            event: 'autopsy_panel_viewed',
             properties: {
               nodeId: intersected[0],
               nodeIEI: (autoNode?.data as FeatureNodeData)?.metrics?.iei ?? 0,
+              nodeStatus: (autoNode?.data as FeatureNodeData)?.status ?? 'unknown',
               activationMethod: 'auto',
             },
           })

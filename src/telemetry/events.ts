@@ -33,15 +33,17 @@ export interface RazorExecutedEvent {
     nodesSentenced: number
     totalIEICut: number
     deltaPhiBits: number
+    sentencedNodeIds: string
   }
 }
 
-export interface AutopsyPanelOpenedEvent {
-  event: 'autopsy_panel_opened'
+export interface AutopsyPanelViewedEvent {
+  event: 'autopsy_panel_viewed'
   properties: {
     nodeId: string
     nodeIEI: number
-    activationMethod: 'click' | 'hotkey' | 'auto'
+    nodeStatus: string
+    activationMethod: 'click' | 'hotkey' | 'auto' | 'search'
   }
 }
 
@@ -53,11 +55,12 @@ export interface CommitObsequiesOpenedEvent {
   }
 }
 
-export interface TombstoneSchemaExportedEvent {
-  event: 'tombstone_schema_exported'
+export interface TombstoneExportCompletedEvent {
+  event: 'tombstone_export_completed'
   properties: {
     schemaCount: number
     sessionDurationMs: number
+    exportedNodeIds: string
   }
 }
 
@@ -67,7 +70,7 @@ export interface NodeSearchExecutedEvent {
     query: string
     resultsCount: number
     selectedNodeId: string
-    selectedNodeTier: string
+    selectedNodeLabel: string
   }
 }
 
@@ -75,16 +78,16 @@ export interface SentenceUndoneEvent {
   event: 'sentence_undone'
   properties: {
     restoredNodeCount: number
-    restoredNodeIds: string[]
+    restoredNodeIds: string
   }
 }
 
-export interface ManifestGenerationCompletedEvent {
-  event: 'manifest_generation_completed'
+export interface CommitObsequiesCompletedEvent {
+  event: 'commit_obsequies_completed'
   properties: {
     sentencedNodeCount: number
-    manifestLineCount: number
-    generationDurationMs: number
+    terminalLineCount: number
+    typewriterDurationMs: number
   }
 }
 
@@ -111,11 +114,11 @@ export type TelemetryEvent =
   | RazorArmedEvent
   | RazorDisarmedEvent
   | RazorExecutedEvent
-  | AutopsyPanelOpenedEvent
+  | AutopsyPanelViewedEvent
   | CommitObsequiesOpenedEvent
-  | TombstoneSchemaExportedEvent
+  | TombstoneExportCompletedEvent
   | NodeSearchExecutedEvent
   | SentenceUndoneEvent
-  | ManifestGenerationCompletedEvent
+  | CommitObsequiesCompletedEvent
   | OnboardingCompletedEvent
   | DeprecationWorkflowCompletedEvent

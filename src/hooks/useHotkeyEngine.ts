@@ -5,6 +5,8 @@
 
 import { useEffect, useCallback } from 'react'
 import { useStore } from '@/store'
+import { track } from '@/telemetry'
+import type { FeatureNodeData } from '@/types'
 
 export function useHotkeyEngine() {
   const razorMode = useStore(s => s.razorMode)
@@ -27,6 +29,7 @@ export function useHotkeyEngine() {
   const helpOverlayOpen = useStore(s => s.helpOverlayOpen)
   const closeHelpOverlay = useStore(s => s.closeHelpOverlay)
   const sentencedNodeIds = useStore(s => s.sentencedNodeIds)
+  const nodes = useStore(s => s.nodes)
   const addToast = useStore(s => s.addToast)
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -66,6 +69,10 @@ export function useHotkeyEngine() {
       }
       if (razorMode !== 'NOMINAL') {
         disarmRazor()
+        track({
+          event: 'razor_disarmed',
+          properties: { reason: 'escape' },
+        })
         addToast({
           content: 'RAZOR DISARMED',
           status: 'razor',
@@ -80,6 +87,12 @@ export function useHotkeyEngine() {
     if (key === 'c' && razorMode === 'NOMINAL' && !terminalOpen && !commandPaletteOpen) {
       e.preventDefault()
       armRazor()
+      track({
+        event: 'razor_armed',
+        properties: {
+          visibleNodeCount: nodes.filter(n => !n.data.sentenced).length,
+        },
+      })
       addToast({
         content: 'RAZOR ARMED — DRAW CUT VECTOR',
         status: 'razor',
@@ -92,6 +105,13 @@ export function useHotkeyEngine() {
     if (key === 'enter' && sentencedNodeIds.length > 0 && !terminalOpen) {
       e.preventDefault()
       openTerminal()
+      track({
+        event: 'commit_obsequies_opened',
+        properties: {
+          sentencedNodeCount: sentencedNodeIds.length,
+          origin: 'hotkey',
+        },
+      })
       return
     }
 
@@ -102,6 +122,15 @@ export function useHotkeyEngine() {
         closeAutopsyPanel()
       } else if (hoveredNodeId) {
         openAutopsyPanel(hoveredNodeId)
+        const hoveredNode = nodes.find(n => n.id === hoveredNodeId)
+        track({
+          event: 'autopsy_panel_opened',
+          properties: {
+            nodeId: hoveredNodeId,
+            nodeIEI: (hoveredNode?.data as FeatureNodeData)?.metrics?.iei ?? 0,
+            activationMethod: 'hotkey',
+          },
+        })
       }
       return
     }
@@ -118,6 +147,13 @@ export function useHotkeyEngine() {
     if (key === 'z' && !e.ctrlKey && !e.metaKey && !terminalOpen) {
       e.preventDefault()
       if (lastSentencedIds.length > 0) {
+        track({
+          event: 'sentence_undone',
+          properties: {
+            restoredNodeCount: lastSentencedIds.length,
+            restoredNodeIds: lastSentencedIds,
+          },
+        })
         restoreNodes(lastSentencedIds)
         addToast({
           content: 'NODE RESTORED — SENTENCE REVOKED\nWARNING: TERMINAL ARTIFACTS REMAIN PERMANENT',
@@ -139,7 +175,7 @@ export function useHotkeyEngine() {
     openTerminal, closeTerminal, closeAutopsyPanel, terminalOpen, autopsyPanelOpen,
     hoveredNodeId, openAutopsyPanel, toggleCommandPalette, commandPaletteOpen,
     closeCommandPalette, toggleHelpOverlay, helpOverlayOpen, closeHelpOverlay,
-    sentencedNodeIds, addToast,
+    sentencedNodeIds, nodes, addToast,
   ])
 
   useEffect(() => {

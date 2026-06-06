@@ -61,6 +61,51 @@ export interface TombstoneSchemaExportedEvent {
   }
 }
 
+export interface NodeSearchExecutedEvent {
+  event: 'node_search_executed'
+  properties: {
+    query: string
+    resultsCount: number
+    selectedNodeId: string
+    selectedNodeTier: string
+  }
+}
+
+export interface SentenceUndoneEvent {
+  event: 'sentence_undone'
+  properties: {
+    restoredNodeCount: number
+    restoredNodeIds: string[]
+  }
+}
+
+export interface ManifestGenerationCompletedEvent {
+  event: 'manifest_generation_completed'
+  properties: {
+    sentencedNodeCount: number
+    manifestLineCount: number
+    generationDurationMs: number
+  }
+}
+
+export interface OnboardingCompletedEvent {
+  event: 'onboarding_completed'
+  properties: {
+    loadDurationMs: number
+    sessionStartTime: string
+  }
+}
+
+export interface DeprecationWorkflowCompletedEvent {
+  event: 'deprecation_workflow_completed'
+  properties: {
+    totalNodesSentenced: number
+    totalDeltaPhiBits: number
+    workflowDurationMs: number
+    exportedSchemaCount: number
+  }
+}
+
 export type TelemetryEvent =
   | CanvasMountedEvent
   | RazorArmedEvent
@@ -69,3 +114,8 @@ export type TelemetryEvent =
   | AutopsyPanelOpenedEvent
   | CommitObsequiesOpenedEvent
   | TombstoneSchemaExportedEvent
+  | NodeSearchExecutedEvent
+  | SentenceUndoneEvent
+  | ManifestGenerationCompletedEvent
+  | OnboardingCompletedEvent
+  | DeprecationWorkflowCompletedEvent

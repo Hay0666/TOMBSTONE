@@ -9,6 +9,7 @@ import { useStore } from '@/store'
 import { StatusPill } from '@/components/ui'
 import { COLORS } from '@/config/design-tokens'
 import type { FeatureNodeData } from '@/types'
+import { track } from '@/telemetry'
 
 export const CommandPalette: FC = () => {
   const isOpen = useStore(s => s.commandPaletteOpen)
@@ -36,6 +37,15 @@ export const CommandPalette: FC = () => {
 
   const handleSelect = (nodeId: string) => {
     openAutopsyPanel(nodeId)
+    track({
+      event: 'command_palette_search',
+      properties: {
+        query,
+        resultsCount: filtered.length,
+        selectedNodeId: nodeId,
+        totalNodes: nodes.length,
+      },
+    })
     close()
   }
 

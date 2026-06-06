@@ -3,7 +3,7 @@
  * Core infinite graph workspace. Heart of the application.
  */
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import {
   ReactFlow,
   Background,
@@ -22,6 +22,8 @@ import { TombstoneNode } from './nodes/TombstoneNode'
 import { PipelineEdge } from './edges/PipelineEdge'
 import { RazorOverlay } from './RazorOverlay'
 import { COLORS } from '@/config/design-tokens'
+import { track } from '@/telemetry'
+import type { FeatureNodeData } from '@/types'
 
 const nodeTypes: NodeTypes = {
   feature: FeatureNode as unknown as NodeTypes['feature'],
@@ -43,6 +45,8 @@ function getMiniMapNodeColor(node: { data?: { tier?: string; sentenced?: boolean
   }
 }
 
+let canvasMountTracked = false
+
 function GraveyardCanvasInner() {
   const nodes = useStore(s => s.nodes)
   const edges = useStore(s => s.edges)
@@ -53,9 +57,36 @@ function GraveyardCanvasInner() {
 
   const reactFlow = useReactFlow()
 
+  // Track canvas_mounted once when nodes are computed and rendered
+  useEffect(() => {
+    if (nodes.length > 0 && !canvasMountTracked) {
+      canvasMountTracked = true
+      const criticalNodes = nodes.filter(n => (n.data as FeatureNodeData).tier === 'critical').length
+      const degradedNodes = nodes.filter(n => (n.data as FeatureNodeData).tier === 'degraded').length
+      const nominalNodes = nodes.filter(n => (n.data as FeatureNodeData).tier === 'nominal').length
+      track({
+        event: 'canvas_mounted',
+        properties: {
+          totalNodes: nodes.length,
+          criticalNodes,
+          degradedNodes,
+          nominalNodes,
+        },
+      })
+    }
+  }, [nodes])
+
   const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     if (razorMode === 'NOMINAL') {
       openAutopsyPanel(node.id)
+      track({
+        event: 'autopsy_panel_opened',
+        properties: {
+          nodeId: node.id,
+          nodeIEI: (node.data as FeatureNodeData).metrics.iei,
+          activationMethod: 'click',
+        },
+      })
     }
   }, [razorMode, openAutopsyPanel])
 

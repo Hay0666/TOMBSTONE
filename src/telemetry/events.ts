@@ -33,15 +33,17 @@ export interface RazorExecutedEvent {
     nodesSentenced: number
     totalIEICut: number
     deltaPhiBits: number
+    sentencedNodeIds: string
   }
 }
 
-export interface AutopsyPanelOpenedEvent {
-  event: 'autopsy_panel_opened'
+export interface AutopsyPanelViewedEvent {
+  event: 'autopsy_panel_viewed'
   properties: {
     nodeId: string
     nodeIEI: number
-    activationMethod: 'click' | 'hotkey' | 'auto'
+    nodeStatus: string
+    activationMethod: 'click' | 'hotkey' | 'auto' | 'search'
   }
 }
 
@@ -53,11 +55,57 @@ export interface CommitObsequiesOpenedEvent {
   }
 }
 
-export interface TombstoneSchemaExportedEvent {
-  event: 'tombstone_schema_exported'
+export interface TombstoneExportCompletedEvent {
+  event: 'tombstone_export_completed'
   properties: {
     schemaCount: number
     sessionDurationMs: number
+    exportedNodeIds: string
+  }
+}
+
+export interface NodeSearchExecutedEvent {
+  event: 'node_search_executed'
+  properties: {
+    query: string
+    resultsCount: number
+    selectedNodeId: string
+    selectedNodeLabel: string
+  }
+}
+
+export interface SentenceUndoneEvent {
+  event: 'sentence_undone'
+  properties: {
+    restoredNodeCount: number
+    restoredNodeIds: string
+  }
+}
+
+export interface CommitObsequiesCompletedEvent {
+  event: 'commit_obsequies_completed'
+  properties: {
+    sentencedNodeCount: number
+    terminalLineCount: number
+    typewriterDurationMs: number
+  }
+}
+
+export interface OnboardingCompletedEvent {
+  event: 'onboarding_completed'
+  properties: {
+    loadDurationMs: number
+    sessionStartTime: string
+  }
+}
+
+export interface DeprecationWorkflowCompletedEvent {
+  event: 'deprecation_workflow_completed'
+  properties: {
+    totalNodesSentenced: number
+    totalDeltaPhiBits: number
+    workflowDurationMs: number
+    exportedSchemaCount: number
   }
 }
 
@@ -66,6 +114,11 @@ export type TelemetryEvent =
   | RazorArmedEvent
   | RazorDisarmedEvent
   | RazorExecutedEvent
-  | AutopsyPanelOpenedEvent
+  | AutopsyPanelViewedEvent
   | CommitObsequiesOpenedEvent
-  | TombstoneSchemaExportedEvent
+  | TombstoneExportCompletedEvent
+  | NodeSearchExecutedEvent
+  | SentenceUndoneEvent
+  | CommitObsequiesCompletedEvent
+  | OnboardingCompletedEvent
+  | DeprecationWorkflowCompletedEvent

@@ -3,7 +3,7 @@
  * Terminal-mode interface for generating code diffs and JSON-LD tombstone schemas.
  */
 
-import { type FC, useEffect, useMemo, useCallback } from 'react'
+import { type FC, useEffect, useMemo, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useStore } from '@/store'
 import { useTypewriter } from '@/hooks/useTypewriter'
@@ -11,6 +11,7 @@ import { generateDiff, generateCommitMessage } from '@/engine/diffGenerator'
 import { COLORS } from '@/config/design-tokens'
 import { toSlug } from '@/engine/tombstoneSchema'
 import { exportBundle } from '@/utils/exportBundle'
+import { track } from '@/telemetry'
 import type { FeatureNodeData } from '@/types'
 
 function buildTerminalLines(sentencedNodes: Array<{ id: string; data: FeatureNodeData }>): string[] {
@@ -66,6 +67,8 @@ export const CommitObsequies: FC = () => {
   const sentencedNodeIds = useStore(s => s.sentencedNodeIds)
   const nodes = useStore(s => s.nodes)
 
+  const sessionStartTime = useStore(s => s.sessionStartTime)
+
   const sentencedNodes = useMemo(
     () => nodes.filter(n => sentencedNodeIds.includes(n.id)),
     [nodes, sentencedNodeIds]
@@ -76,9 +79,21 @@ export const CommitObsequies: FC = () => {
     [sentencedNodes]
   )
 
+  const generationStartRef = useRef<number>(0)
+
   const onComplete = useCallback(() => {
     setTerminalComplete(true)
-  }, [setTerminalComplete])
+    track({
+      event: 'commit_obsequies_completed',
+      properties: {
+        sentencedNodeCount: sentencedNodeIds.length,
+        terminalLineCount: terminalLines.length,
+        typewriterDurationMs: generationStartRef.current
+          ? Date.now() - generationStartRef.current
+          : 0,
+      },
+    })
+  }, [setTerminalComplete, sentencedNodeIds.length, terminalLines.length])
 
   const { displayedLines, currentText, isTyping, start } = useTypewriter(terminalLines, {
     speed: 20,
@@ -88,6 +103,7 @@ export const CommitObsequies: FC = () => {
 
   useEffect(() => {
     if (terminalOpen && sentencedNodes.length > 0) {
+      generationStartRef.current = Date.now()
       start()
     }
   }, [terminalOpen, sentencedNodes.length, start])
@@ -103,7 +119,30 @@ export const CommitObsequies: FC = () => {
       })),
       terminalLines.join('\n'),
     )
-  }, [sentencedNodes, terminalLines])
+
+    track({
+      event: 'tombstone_export_completed',
+      properties: {
+        schemaCount: sentencedNodes.length,
+        sessionDurationMs: Date.now() - sessionStartTime,
+        exportedNodeIds: sentencedNodes.map(n => n.id).join(','),
+      },
+    })
+
+    const totalDeltaPhiBits = sentencedNodes.reduce(
+      (sum, n) => sum + ((n.data as FeatureNodeData).metrics?.deltaPhi ?? 0),
+      0,
+    )
+    track({
+      event: 'deprecation_workflow_completed',
+      properties: {
+        totalNodesSentenced: sentencedNodes.length,
+        totalDeltaPhiBits: Math.round(totalDeltaPhiBits * 100) / 100,
+        workflowDurationMs: Date.now() - sessionStartTime,
+        exportedSchemaCount: sentencedNodes.length,
+      },
+    })
+  }, [sentencedNodes, terminalLines, sessionStartTime])
 
   const sessionId = useMemo(() => new Date().toISOString().replace(/[:.]/g, '-'), [])
 

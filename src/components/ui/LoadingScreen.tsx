@@ -8,6 +8,7 @@ import { type FC, useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useStore } from '@/store'
 import { COLORS } from '@/config/design-tokens'
+import { track } from '@/telemetry'
 
 const LOADING_LINES = [
   'TOMBSTONE',
@@ -18,9 +19,13 @@ const LOADING_LINES = [
   'GRAVEYARD READY.',
 ]
 
+// Module-level guard to prevent re-firing on remount
+let onboardingTracked = false
+
 export const LoadingScreen: FC = () => {
   const loadingComplete = useStore(s => s.loadingComplete)
   const setLoadingComplete = useStore(s => s.setLoadingComplete)
+  const sessionStartTime = useStore(s => s.sessionStartTime)
   const [visibleLines, setVisibleLines] = useState<number>(0)
   const [typingIndex, setTypingIndex] = useState(0)
   const [currentText, setCurrentText] = useState('')
@@ -32,7 +37,19 @@ export const LoadingScreen: FC = () => {
       // All lines displayed, wait minimum duration then fade out
       const timer = setTimeout(() => {
         setShowScreen(false)
-        setTimeout(() => setLoadingComplete(true), 500)
+        setTimeout(() => {
+          setLoadingComplete(true)
+          if (!onboardingTracked) {
+            onboardingTracked = true
+            track({
+              event: 'onboarding_completed',
+              properties: {
+                loadDurationMs: Date.now() - sessionStartTime,
+                sessionStartTime: new Date(sessionStartTime).toISOString(),
+              },
+            })
+          }
+        }, 500)
       }, 600)
       return () => clearTimeout(timer)
     }

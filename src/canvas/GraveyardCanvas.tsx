@@ -3,7 +3,7 @@
  * Core infinite graph workspace. Heart of the application.
  */
 
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import {
   ReactFlow,
   Background,
@@ -22,6 +22,8 @@ import { TombstoneNode } from './nodes/TombstoneNode'
 import { PipelineEdge } from './edges/PipelineEdge'
 import { RazorOverlay } from './RazorOverlay'
 import { COLORS } from '@/config/design-tokens'
+import { track } from '@/telemetry'
+import type { FeatureNodeData } from '@/types'
 
 const nodeTypes: NodeTypes = {
   feature: FeatureNode as unknown as NodeTypes['feature'],
@@ -43,6 +45,9 @@ function getMiniMapNodeColor(node: { data?: { tier?: string; sentenced?: boolean
   }
 }
 
+// Module-level guard to prevent re-firing on remount
+let canvasMountTracked = false
+
 function GraveyardCanvasInner() {
   const nodes = useStore(s => s.nodes)
   const edges = useStore(s => s.edges)
@@ -53,9 +58,43 @@ function GraveyardCanvasInner() {
 
   const reactFlow = useReactFlow()
 
+  // Track canvas mount once per session
+  useEffect(() => {
+    if (canvasMountTracked || nodes.length === 0) return
+    canvasMountTracked = true
+    const tierCounts = nodes.reduce(
+      (acc, n) => {
+        const tier = (n.data as FeatureNodeData).tier
+        if (tier === 'critical') acc.critical++
+        else if (tier === 'degraded') acc.degraded++
+        else acc.nominal++
+        return acc
+      },
+      { critical: 0, degraded: 0, nominal: 0 },
+    )
+    track({
+      event: 'canvas_mounted',
+      properties: {
+        totalNodes: nodes.length,
+        criticalNodes: tierCounts.critical,
+        degradedNodes: tierCounts.degraded,
+        nominalNodes: tierCounts.nominal,
+      },
+    })
+  }, [nodes])
+
   const onNodeClick: NodeMouseHandler = useCallback((_event, node) => {
     if (razorMode === 'NOMINAL') {
       openAutopsyPanel(node.id)
+      track({
+        event: 'autopsy_panel_viewed',
+        properties: {
+          nodeId: node.id,
+          nodeIEI: (node.data as FeatureNodeData).metrics?.iei ?? 0,
+          nodeStatus: (node.data as FeatureNodeData).status ?? 'unknown',
+          activationMethod: 'click',
+        },
+      })
     }
   }, [razorMode, openAutopsyPanel])
 

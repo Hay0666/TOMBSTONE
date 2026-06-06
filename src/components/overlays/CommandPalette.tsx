@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { useStore } from '@/store'
 import { StatusPill } from '@/components/ui'
 import { COLORS } from '@/config/design-tokens'
+import { track } from '@/telemetry'
 import type { FeatureNodeData } from '@/types'
 
 export const CommandPalette: FC = () => {
@@ -35,6 +36,26 @@ export const CommandPalette: FC = () => {
   }, [nodes, query])
 
   const handleSelect = (nodeId: string) => {
+    const selectedNode = nodes.find(n => n.id === nodeId)
+    const selectedData = selectedNode?.data as FeatureNodeData | undefined
+    track({
+      event: 'node_search_executed',
+      properties: {
+        query: query,
+        resultsCount: filtered.length,
+        selectedNodeId: nodeId,
+        selectedNodeLabel: selectedData?.label ?? '',
+      },
+    })
+    track({
+      event: 'autopsy_panel_viewed',
+      properties: {
+        nodeId,
+        nodeIEI: selectedData?.metrics?.iei ?? 0,
+        nodeStatus: selectedData?.status ?? 'unknown',
+        activationMethod: 'search',
+      },
+    })
     openAutopsyPanel(nodeId)
     close()
   }

@@ -9,6 +9,8 @@ import { useStore } from '@/store'
 import { getIntersectedNodesPolyline } from '@/engine/razorGeometry'
 import { computeDeltaPhiBatch } from '@/engine/metrics'
 import { COLORS } from '@/config/design-tokens'
+import { track } from '@/telemetry'
+import type { FeatureNodeData } from '@/types'
 
 export const RazorOverlay: FC = () => {
   const razorMode = useStore(s => s.razorMode)
@@ -94,6 +96,10 @@ export const RazorOverlay: FC = () => {
 
       if (intersected.length === 0) {
         resetRazor()
+        track({
+          event: 'razor_disarmed',
+          properties: { reason: 'no_targets' },
+        })
         addToast({ content: 'RAZOR DISARMED — NO TARGETS ACQUIRED', status: 'razor', duration: 2000 })
         return
       }
@@ -107,6 +113,20 @@ export const RazorOverlay: FC = () => {
 
       // Pre-calculate ΔΦ using the live nodes at the moment of the cut
       const { totalDeltaPhi, nodeDeltaPhis } = computeDeltaPhiBatch(nodes, intersected)
+
+      // Track razor execution
+      const totalIEICut = intersected.reduce((sum, id) => {
+        const node = nodes.find(n => n.id === id)
+        return sum + (node ? (node.data as FeatureNodeData).metrics.iei : 0)
+      }, 0)
+      track({
+        event: 'razor_executed',
+        properties: {
+          nodesSentenced: intersected.length,
+          totalIEICut,
+          deltaPhiBits: totalDeltaPhi,
+        },
+      })
 
       // t=100ms: Sentence nodes
       setTimeout(() => {
@@ -129,6 +149,15 @@ export const RazorOverlay: FC = () => {
       setTimeout(() => {
         if (intersected.length > 0) {
           openAutopsyPanel(intersected[0])
+          const firstNode = nodes.find(n => n.id === intersected[0])
+          track({
+            event: 'autopsy_panel_opened',
+            properties: {
+              nodeId: intersected[0],
+              nodeIEI: firstNode ? (firstNode.data as FeatureNodeData).metrics.iei : 0,
+              activationMethod: 'auto',
+            },
+          })
         }
       }, 600)
 

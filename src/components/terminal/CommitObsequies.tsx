@@ -12,6 +12,7 @@ import { COLORS } from '@/config/design-tokens'
 import { toSlug } from '@/engine/tombstoneSchema'
 import { exportBundle } from '@/utils/exportBundle'
 import type { FeatureNodeData } from '@/types'
+import { track } from '@/telemetry'
 
 function buildTerminalLines(sentencedNodes: Array<{ id: string; data: FeatureNodeData }>): string[] {
   const timestamp = new Date().toISOString()
@@ -58,6 +59,8 @@ function buildTerminalLines(sentencedNodes: Array<{ id: string; data: FeatureNod
   return lines
 }
 
+const sessionStartMs = Date.now()
+
 export const CommitObsequies: FC = () => {
   const terminalOpen = useStore(s => s.terminalOpen)
   const closeTerminal = useStore(s => s.closeTerminal)
@@ -78,7 +81,19 @@ export const CommitObsequies: FC = () => {
 
   const onComplete = useCallback(() => {
     setTerminalComplete(true)
-  }, [setTerminalComplete])
+    const totalDeltaPhiBits = sentencedNodes.reduce(
+      (sum, n) => sum + (n.data as FeatureNodeData).metrics.deltaPhi, 0
+    )
+    // artifactCount: 1 schema per node + diff + commit message + manifest
+    track({
+      event: 'deprecation_workflow_completed',
+      properties: {
+        sentencedNodeCount: sentencedNodes.length,
+        totalDeltaPhiBits,
+        artifactCount: sentencedNodes.length + 3,
+      },
+    })
+  }, [setTerminalComplete, sentencedNodes])
 
   const { displayedLines, currentText, isTyping, start } = useTypewriter(terminalLines, {
     speed: 20,
@@ -103,6 +118,13 @@ export const CommitObsequies: FC = () => {
       })),
       terminalLines.join('\n'),
     )
+    track({
+      event: 'tombstone_schema_exported',
+      properties: {
+        schemaCount: sentencedNodes.length,
+        sessionDurationMs: Date.now() - sessionStartMs,
+      },
+    })
   }, [sentencedNodes, terminalLines])
 
   const sessionId = useMemo(() => new Date().toISOString().replace(/[:.]/g, '-'), [])

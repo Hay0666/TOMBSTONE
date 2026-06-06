@@ -61,6 +61,42 @@ export interface TombstoneSchemaExportedEvent {
   }
 }
 
+export interface NodesRestoredEvent {
+  event: 'nodes_restored'
+  properties: {
+    nodesRestored: number
+    restoredNodeIds: string[]
+  }
+}
+
+export interface CommandPaletteSearchEvent {
+  event: 'command_palette_search'
+  properties: {
+    query: string
+    resultsCount: number
+    selectedNodeId: string
+    totalNodes: number
+  }
+}
+
+export interface DeprecationWorkflowCompletedEvent {
+  event: 'deprecation_workflow_completed'
+  properties: {
+    sentencedNodeCount: number
+    totalDeltaPhiBits: number
+    artifactCount: number
+  }
+}
+
+export interface HelpOverlayOpenedEvent {
+  event: 'help_overlay_opened'
+  properties: {
+    activationMethod: 'hotkey'
+    currentRazorMode: string
+    sentencedNodeCount: number
+  }
+}
+
 export type TelemetryEvent =
   | CanvasMountedEvent
   | RazorArmedEvent
@@ -69,3 +105,7 @@ export type TelemetryEvent =
   | AutopsyPanelOpenedEvent
   | CommitObsequiesOpenedEvent
   | TombstoneSchemaExportedEvent
+  | NodesRestoredEvent
+  | CommandPaletteSearchEvent
+  | DeprecationWorkflowCompletedEvent
+  | HelpOverlayOpenedEvent
